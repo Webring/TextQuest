@@ -95,7 +95,7 @@
     },
     "door1": {
       "name": "Дверь",
-      "image": "img_path",
+      "image": "https://drive.google.com/uc?id=14eiM0urLr_KgEtDZhTi8NlBKRtjTiYC9",
       "objects": [],
       "on_action": {
         "put": [
@@ -361,9 +361,8 @@
 
     "room3": {
       "name": "Стартовая комната игрока 3",
-      "image": "img_path",
+      "image": "https://i.ibb.co/hgwxS3J/cabinet.jpg",
       "objects": [
-        "chair",
         "table",
         "closet",
         "storage3",
@@ -382,10 +381,10 @@
     },
     "table": {
       "name": "Стол",
-      "image": "img_path",
+      "image": "https://drive.google.com/uc?id=1aSOFN20PlJfvsyPENZQjRo39JVtFdEbS",
       "parent": "room3",
       "objects": [
-        "book",
+        "book1",
         "phone"
       ],
       "on_action": {
@@ -420,7 +419,7 @@
     },
     "closet": {
       "name": "Шкаф",
-      "image": "img_path",
+      "image": "https://drive.google.com/uc?id=1pWUXO1K7Ml04im-546o1QwG-LUbCHGOO",
       "objects": [],
       "on_action": {
         "view": [
@@ -432,7 +431,7 @@
     },
     "storage3": {
       "name": "Тумба",
-      "image": "img_path",
+      "image": "https://drive.google.com/uc?id=1LrNwdIYle_TuqMPaPN1XByQam0c4VmnP",
       "parent": "room3",
       "objects": [
         "key"
@@ -468,7 +467,7 @@
     },
     "door3": {
       "name": "Дверь",
-      "image": "img_path",
+      "image": "https://drive.google.com/uc?id=14eiM0urLr_KgEtDZhTi8NlBKRtjTiYC9",
       "objects": [],
       "on_action": {
         "put": [

@@ -105,15 +105,16 @@ class Quest:
         if action_type not in target_actions.keys():
             return {"error": f"Action type {action_type} not supported"}
 
-        success = True
+        # success = True
 
         if isinstance(target_actions[action_type], list):
             for action_element in target_actions[action_type]:
-                success = self.execute_action(target_1, action_element, target_2)
-                if not success:
+                execution_result = self.execute_action(target_1, action_element, target_2)
+                if not execution_result.get("success", True):
                     break
         else:
-            success = self.execute_action(target_1, target_actions[action_type], target_2)
+            execution_result = self.execute_action(target_1, target_actions[action_type], target_2)
+        success = execution_result.get("success", True)
 
         if success and action_type == Actions.ENTER:
             self.move_player(player_name, target_1)
@@ -204,7 +205,7 @@ async def handler(websocket):
         parent_objects = quest.objects[quest.objects[player_name].parent].objects.copy()
         parent_objects.remove(player_name)
         objects_dict = {"surroundings":get_id_name_image(parent_objects)}
-        inventory_dict = {"inventory":quest.objects[player_name].objects}
+        inventory_dict = {"inventory":get_id_name_image(quest.objects[player_name].objects)}
         current_image = {"image": quest.objects[quest.objects[player_name].parent].image}
         response |= current_image
         response |= inventory_dict
