@@ -9,7 +9,7 @@ from expression_parser import evaluate_expression
 from game_object import GameObject
 
 
-class Actions(enum.Enum):
+class Actions:
     VIEW = "view"
     TAKE = "take"
     PUT = "put"
@@ -52,78 +52,90 @@ class Quest:
 
     def move_player(self, player_name, destination_name):
         source_name = self.objects[player_name].parent
-        self.move_object(source_name, destination_name, player_name)
+        self.move_object(player_name, source_name, destination_name)
         self.objects[player_name].parent = destination_name
 
-    def execute_action(self, target_name, action: Dict[str, Any], context: dict) -> bool:
-        context |= self.get_object_context(target_name)
+    def execute_action(self, target_1, action: Dict[str, Any], target_2: str) -> bool:
+        context = self.get_object_context(target_1)
+        if target_2 is not None:
+            context["obj"] = target_2
 
         if "if" in action:
             condition = evaluate_expression(action["if"]["exp"], context)
             block = action["if"]["do"] if condition else action["if"].get("else", {})
-            return self.execute_action(target_name, block, context)
+            return self.execute_action(target_1, block, target_2)
 
         if "message" in action:
-            print(action["message"])
+            return {"message": action["message"]}
         if "set_gattr" in action:
             self.gattrs.update(action["set_gattr"])
         return action.get("success", True)
 
-    def perform_actions(self, player_name: str, action_type: str, target_name: str, context: dict = None) -> None:
+    def perform_actions(self, player_name: str, action_type: str, target_1: str, target_2: str = None) -> Dict[
+        str, Any]:
         current_player = self.objects[player_name]
         current_player_parent = self.objects[current_player.parent]
 
-        if action_type == "enter" and not target_name and current_player_parent.parent is not None:
-            self.objects[player_name].parent = current_player_parent.parent
-            return
+        if action_type == "enter" and not target_1 and current_player_parent.parent is not None:
+            self.move_player(player_name, current_player_parent.parent)
+            return {"message": f"Player {player_name} moved to {current_player_parent.parent}"}
 
-        if not target_name:
-            target_name = current_player.parent
+        if not target_1:
+            target_1 = current_player.parent
 
-        target = self.objects[target_name]
+        if target_1 not in self.objects:
+            return {"error": f"Target {target_1} not found"}
 
-        if context is None:
-            context = {}
+        target = self.objects[target_1]
 
-        if current_player.parent != target_name and target_name not in current_player_parent.objects:
-            print(f"Error: can't find objects")
-            return
+        if target_2 is None:
+            target_2 = ""
 
-        if action_type == "put" and context["obj"] not in current_player.objects:
-            print(f"Error: object {target_name} must be in player's inventory")
-            print(current_player.objects)
-            return
+        if current_player.parent != target_1 and target_1 not in current_player_parent.objects:
+            return {"error": "Can't find objects"}
+
+        if action_type == "put" and target_2 not in current_player.objects:
+            return {
+                "error": f"Object {target_1} must be in player's inventory",
+                "inventory": current_player.objects,
+            }
 
         target_actions = target.on_action
 
         if action_type not in target_actions.keys():
-            print(f"Error: action type {action_type} not supported")
-            return
+            return {"error": f"Action type {action_type} not supported"}
 
         success = True
 
         if isinstance(target_actions[action_type], list):
             for action_element in target_actions[action_type]:
-                success = self.execute_action(target_name, action_element, context)
+                success = self.execute_action(target_1, action_element, target_2)
                 if not success:
                     break
         else:
-            success = self.execute_action(target_name, target_actions[action_type], context)
+            success = self.execute_action(target_1, target_actions[action_type], target_2)
 
         if success and action_type == Actions.ENTER:
-            self.move_player(player_name, target_name)
+            self.move_player(player_name, target_1)
+            return {"message": f"Player {player_name} entered {target_1}"}
 
         if success and action_type == Actions.TAKE:
-            self.move_object(target_name, current_player.parent, player_name)
+            self.move_object(target_1, current_player.parent, player_name)
+            return {"message": f"Player {player_name} took {target_1}"}
 
         if success and action_type == Actions.PUT:
-            self.move_object(context["obj"], player_name, target_name)
+            self.move_object(target_2, player_name, target_1)
+            return {"message": f"Player {player_name} put {target_2} in {target_1}"}
+
+        if success:
+            return success
+        return {"error": "Unknown action result"}
 
     def __repr__(self):
         return f"<Quest(title={self.title}, objects={list(self.objects.keys())})>"
 
 
-# # Для тестирования:
+# Для тестирования:
 # if __name__ == "__main__":
 #     with open("demo.json", mode="r", encoding="utf-8") as file:
 #         quest_data = json.load(file)
@@ -139,44 +151,90 @@ class Quest:
 #
 #         attrs = command.split(" ", 2)
 #         action_type, target, extra_target = attrs + [""] * (3 - len(attrs))
-#         quest.perform_actions(current_player, action_type, target, {"obj": extra_target})
+#         print(quest.perform_actions(current_player, action_type, target, extra_target))
 
 connected_clients = {}
+
+
+def all_players_connected():
+    return len(connected_clients) == 3
+
+
+def get_id_name_image(objects):
+    r_list = []
+    for obj in objects:
+        r_list.append({"id": obj, "name": quest.objects[obj].name, "image": quest.objects[obj].image})
+    return r_list
 
 
 async def handler(websocket):
     global connected_clients
     async for message in websocket:
-        data = json.loads(message)
-
-        if "connect" in data:
-            player_name = data["connect"]
-            connected_clients[player_name] = websocket
-            await websocket.send(json.dumps({"message": f"Welcome, {player_name}!"}))
+        try:
+            data = json.loads(message)
+        except Exception:
+            await websocket.send(json.dumps({"error": "Wrong input"}))
             continue
 
-        if "action" in data:
+        if "player" not in data or "action_type" not in data:
+            await websocket.send(json.dumps({"error": "Wrong input (missing keys: 'player' or 'action_type')"}))
+            continue
+
+        if data["action_type"] == "connect":
             player_name = data["player"]
-            action_type = data["action"]["type"]
-            target = data["action"].get("target", "")
-            context = data["action"].get("context", {})
+            connected_clients[player_name] = websocket
+            await websocket.send(json.dumps({"message": f"Welcome, {player_name}!"}))
+            # if all_players_connected():
+            #     for client in connected_clients.values():
+            #         await client.send(json.dumps({"message": "All players connected. Let the game begin!"}))
+            continue
 
-            if player_name not in quest.players:
-                await websocket.send(json.dumps({"error": "Player not found"}))
-                continue
+        player_name = data["player"]
+        if player_name not in quest.players:
+            await websocket.send(json.dumps({"error": "Player not found"}))
+            continue
 
-            response = quest.perform_actions(player_name, action_type, target, context)
-            await websocket.send(json.dumps(response))
+        action_type = data["action_type"]
+        target_1 = data.get("target_1", None)
+        target_2 = data.get("target_2", None)
+
+        # Выполнение действия и отправка результата
+        response = quest.perform_actions(player_name, action_type, target_1, target_2)
+        print(response)
+        parent_objects = quest.objects[quest.objects[player_name].parent].objects.copy()
+        parent_objects.remove(player_name)
+        objects_dict = {"surroundings":get_id_name_image(parent_objects)}
+        inventory_dict = {"inventory":quest.objects[player_name].objects}
+        current_image = {"image": quest.objects[quest.objects[player_name].parent].image}
+        response |= current_image
+        response |= inventory_dict
+        response |= objects_dict
+        print(response)
+
+
+        await websocket.send(json.dumps(response))
+
+
+# {"player":"player1","action_type":"connect"}
+
+# if "action" in data:
+#     player_name = data["player"]
+#     action_type = data["action"]["type"]
+#     target = data["action"].get("target", "")
+#     context = data["action"].get("context", {})
+
 
 if __name__ == "__main__":
-    with open("demo.json", mode="r", encoding="utf-8") as file:
+    with open("logic.json", mode="r", encoding="utf-8") as file:
         quest_data = json.load(file)
         quest = Quest(quest_data)
+
 
     async def main():
         # Убедитесь, что здесь передается ссылка на функцию handler, а не ее вызов
         server = await websockets.serve(handler, "localhost", 8765)
         print("Server started on ws://localhost:8765")
         await server.wait_closed()
+
 
     asyncio.run(main())

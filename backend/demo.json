@@ -100,7 +100,8 @@
     "player": {
       "name": "Игрок",
       "image": "img_path",
-      "parent": "room"
+      "parent": "room",
+      "objects": []
     }
   },
   "end_actions": {
