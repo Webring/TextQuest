@@ -1,0 +1,112 @@
+{
+  "title": "Демо квест на 1 игрока",
+  "meta": {
+    "authors": "Mihail, Alena, Victor",
+    "version": "0.0.1"
+  },
+  "gattrs": {
+    "is_end": false
+  },
+  "objects": {
+    "room": {
+      "name": "Стартовая комната",
+      "image": "img_path",
+      "objects": [
+        "door",
+        "storage",
+        "player"
+      ],
+      "on_action": {
+        "view": [
+          {
+            "message": "Пустая комната"
+          }
+        ]
+      }
+    },
+    "door": {
+      "name": "Дверь",
+      "image": "img_path",
+      "objects": [],
+      "on_action": {
+        "put": [
+          {
+            "if": {
+              "exp": {
+                "eq": [
+                  "attr: obj",
+                  "key"
+                ]
+              },
+              "do": {
+                "message": "Ключ подошел"
+              },
+              "else": {
+                "message": "Объект не подошел",
+                "success": false
+              }
+            }
+          }
+        ],
+        "enter": [
+          {
+            "if": {
+              "exp": {
+                "in": [
+                  "attr:objects",
+                  "key"
+                ]
+              },
+              "do": {
+                "set_gattr": {
+                  "is_end": true
+                },
+                "message": "Дверь открылась"
+              },
+              "else": {
+                "message": "Дверь закрыта",
+                "success": false
+              }
+            }
+          }
+        ]
+      }
+    },
+    "storage": {
+      "name": "Комод",
+      "image": "img_path",
+      "parent": "room",
+      "objects": [
+        "key"
+      ],
+      "on_action": {
+        "enter": {
+          "message": "Вы открыли комод"
+        }
+      }
+    },
+    "key": {
+      "name": "Ключ",
+      "image": "img_path",
+      "objects": [],
+      "on_action": {
+        "take": [
+          {
+            "message": "Вы взяли старинный ключ!"
+          }
+        ]
+      }
+    },
+    "player": {
+      "name": "Игрок",
+      "image": "img_path",
+      "parent": "room"
+    }
+  },
+  "end_actions": {
+    "message": "Вы закончили испытание!"
+  },
+  "players": [
+    "player"
+  ]
+}
