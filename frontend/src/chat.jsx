@@ -1,5 +1,6 @@
 import React, {useState} from 'react';
 import SelectableList from "./SelectableList.jsx";
+import MessagesHistory from "./MessagesHistory.jsx";
 
 const Chat = () => {
     const [ip, setIp] = useState('localhost'); // IP-адрес сервера
@@ -7,10 +8,12 @@ const Chat = () => {
     const [port, setPort] = useState('8765'); // Порт сервера
 
     const [action, setAction] = useState('view');
+    const [sms, setSms] = useState('');
+    const [messageHistory, setMessageHistory] = useState("");
     const [selectedObject, setSelectedObject] = useState(null);
     const [selectedInventoryObject, setSelectedInventoryObject] = useState(null);
 
-    const [inventory, setInventory] = useState([{"id":"storage", "name":"123", image:"123"}]);
+    const [inventory, setInventory] = useState([{"id": "storage", "name": "123", image: "123"}]);
     const [objects, setObjects] = useState([]);
 
     const [image, setImage] = useState("");
@@ -40,6 +43,7 @@ const Chat = () => {
                 }));
                 setIsConnected(true)
                 setIsConnecting(false)
+                setMessageHistory("")
             };
             ws.onmessage = (event) => {
                 let incoming_data = JSON.parse(event.data);
@@ -55,11 +59,18 @@ const Chat = () => {
                 setMessage(incoming_data["message"] ?? "");
                 setErrors(incoming_data["error"] ?? "");
 
+                if (incoming_data["message"] && incoming_data["message"].length > 0) {
+                    console.log(messageHistory);
+                    setMessageHistory(
+                        (prevMessageHistory) =>
+                            incoming_data["message"] + "\n\n" + prevMessageHistory);
+                }
 
             };
             ws.onclose = () => {
                 setIsConnecting(false)
-                setIsConnected(false)};
+                setIsConnected(false)
+            };
             ws.onerror = () => {
                 alert('Ошибка подключения');
                 setIsConnected(false);
@@ -70,11 +81,15 @@ const Chat = () => {
 
     const sendMessage = () => {
         if (socket && isConnected) {
+            let target_2 = selectedInventoryObject
+            if (action === "send") {
+                target_2 = sms
+            }
             socket.send(JSON.stringify({
                 "player": playerName,
                 "action_type": action,
                 "target_1": selectedObject,
-                "target_2": selectedInventoryObject
+                "target_2": target_2
             }));
         }
     };
@@ -84,14 +99,14 @@ const Chat = () => {
     };
 
     return (
-        <div>
+        <div className="pb-5">
             <nav className="bg-gray-800 text-white p-4 mb-5">
                 <div className="container mx-auto flex flex-col lg:flex-row items-center justify-between">
                     {/* Логотип */}
                     <div className="p-2 text-lg font-bold mb-4 md:mb-0 flex items-center">
                         <img src="/logo.png" alt="logo" className="w-10 h-10 mr-3"/>
                         <div>TextQuest</div>
-                        </div>
+                    </div>
 
                     {/* Форма подключения */}
                     <div className="flex flex-col md:flex-row items-center">
@@ -141,76 +156,96 @@ const Chat = () => {
 
                     </div>
 
-                    <div className="flex justify-center mb-2 flex-wrap">
-                    <div className="flex">
-                        <label className="cursor-pointer">
-                            <input type="radio"
-                                   name="radio-group"
-                                   value="view"
-                                   className="peer hidden"
-                                   onChange={handleChange}
-                                   defaultChecked/>
-                            <div
-                                className="peer-checked:bg-blue-600 peer-checked:text-white bg-gray-200 text-gray-700 px-5 py-2.5 rounded-l-lg">
-                                Осмотреть
-                            </div>
-                        </label>
-
-                        <label className="cursor-pointer">
-                            <input type="radio" onChange={handleChange}
-                                   name="radio-group" value="enter" className="peer hidden"/>
-                            <div
-                                className="peer-checked:bg-blue-600 peer-checked:text-white bg-gray-200 text-gray-700 px-5 py-2.5">
-                                Войти
-                            </div>
-                        </label>
-
-                        <label className="cursor-pointer">
-                            <input type="radio" onChange={handleChange} name="radio-group" value="take"
-                                   className="peer hidden"/>
-                            <div
-                                className="peer-checked:bg-blue-600 peer-checked:text-white bg-gray-200 text-gray-700 px-5 py-2.5">
-                                Взять
-                            </div>
-                        </label>
-
-                        <label className="cursor-pointer">
-                            <input type="radio" onChange={handleChange} name="radio-group" value="put"
-                                   className="peer hidden"/>
-                            <div
-                                className="peer-checked:bg-blue-600 peer-checked:text-white bg-gray-200 text-gray-700 px-5 py-2.5 rounded-r-lg">
-                                Положить
-                            </div>
-                        </label>
+                    <div className="flex justify-center my-5">
+                        <div className="text-white">{message}</div>
+                        <div className="text-red-700">{errors}</div>
                     </div>
 
+                    <div className="flex justify-center flex-wrap">
+                        <div className="flex m-1">
+                            <label className="cursor-pointer">
+                                <input type="radio"
+                                       name="radio-group"
+                                       value="view"
+                                       className="peer hidden"
+                                       onChange={handleChange}
+                                       defaultChecked/>
+                                <div
+                                    className="peer-checked:bg-blue-600 peer-checked:text-white bg-gray-200 text-gray-700 px-5 py-2.5 rounded-l-lg">
+                                    Осмотреть
+                                </div>
+                            </label>
 
-                    <button onClick={sendMessage} disabled={!isConnected}
-                            className="bg-blue-600 hover:bg-blue-700 rounded-lg text-white mt-2 md:mt-0 md:ml-3 px-4 py-2">
-                        Выполнить действие
-                    </button>
-                </div>
+                            <label className="cursor-pointer">
+                                <input type="radio" onChange={handleChange}
+                                       name="radio-group" value="enter" className="peer hidden"/>
+                                <div
+                                    className="peer-checked:bg-blue-600 peer-checked:text-white bg-gray-200 text-gray-700 px-5 py-2.5">
+                                    Войти
+                                </div>
+                            </label>
 
-                <div className="flex justify-center mb-2">
-                    <div className="text-white">{message}</div>
-                    <div className="text-red-700">{errors}</div>
-                </div>
+                            <label className="cursor-pointer">
+                                <input type="radio" onChange={handleChange} name="radio-group" value="take"
+                                       className="peer hidden"/>
+                                <div
+                                    className="peer-checked:bg-blue-600 peer-checked:text-white bg-gray-200 text-gray-700 px-5 py-2.5">
+                                    Взять
+                                </div>
+                            </label>
 
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="md:w-1/2">
-                        <h1 className="font-bold text-center text-white mb-2">Доступные объекты:</h1>
-                        <SelectableList items={objects}
-                                        selectedId={selectedObject}
-                                        setSelectedId={setSelectedObject}/>
+                            <label className="cursor-pointer">
+                                <input type="radio" onChange={handleChange} name="radio-group" value="put"
+                                       className="peer hidden"/>
+                                <div
+                                    className="peer-checked:bg-blue-600 peer-checked:text-white bg-gray-200 text-gray-700 px-5 py-2.5">
+                                    Положить
+                                </div>
+                            </label>
+
+                            <label className="cursor-pointer">
+                                <input type="radio" onChange={handleChange} name="radio-group" value="send"
+                                       className="peer hidden"/>
+                                <div
+                                    className="peer-checked:bg-blue-600 peer-checked:text-white bg-gray-200 text-gray-700 px-5 py-2.5 rounded-r-lg">
+                                    Сказать
+                                </div>
+                            </label>
+                        </div>
+
+                        <div className="my-1">
+                            {action === "send" && <input
+                                type="text"
+                                placeholder="Введите текст сообщения для отправки"
+                                value={sms}
+                                onChange={(e) => setSms(e.target.value)}
+                                className="border border-gray-300 rounded-lg px-4 mx-1 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                            />}
+
+                            <button onClick={sendMessage} disabled={!isConnected}
+                                    className="bg-blue-600 hover:bg-blue-700 rounded-lg text-white px-4 py-2 mx-1">
+                                Выполнить действие
+                            </button>
+                        </div>
                     </div>
-                    <div className="md:w-1/2">
-                        <h1 className="font-bold text-center text-white mb-2">Инвентарь:</h1>
-                        <SelectableList items={inventory}
-                                        selectedId={selectedInventoryObject}
-                                        setSelectedId={setSelectedInventoryObject}/>
+
+                    <MessagesHistory messageHistory={messageHistory}/>
+
+                    <div className="flex flex-col md:flex-row gap-4 mt-5">
+                        <div className="md:w-1/2">
+                            <h1 className="font-bold text-center text-white mb-2">Доступные объекты:</h1>
+                            <SelectableList items={objects}
+                                            selectedId={selectedObject}
+                                            setSelectedId={setSelectedObject}/>
+                        </div>
+                        <div className="md:w-1/2">
+                            <h1 className="font-bold text-center text-white mb-2">Инвентарь:</h1>
+                            <SelectableList items={inventory}
+                                            selectedId={selectedInventoryObject}
+                                            setSelectedId={setSelectedInventoryObject}/>
+                        </div>
                     </div>
-                </div>
-            </div> :
+                </div> :
                 <h1 className="text-white font-bold text-center p-5">
                     Введите данные игры, чтобы к ней подключиться!
                 </h1>}
