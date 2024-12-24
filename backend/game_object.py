@@ -10,7 +10,6 @@ class GameObject:
         self.objects = data.get("objects", [])
         self.on_action = data.get("on_action", {})
         self.parent = data.get("parent", None)
-        self.gattrs = data.get("gattrs", {})  # Словарь для произвольных атрибутов
 
     def __repr__(self):
         return f"<GameObject(name={self.name}, objects={self.objects})>"
