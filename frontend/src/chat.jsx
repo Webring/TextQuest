@@ -13,7 +13,7 @@ const Chat = () => {
     const [selectedObject, setSelectedObject] = useState(null);
     const [selectedInventoryObject, setSelectedInventoryObject] = useState(null);
 
-    const [inventory, setInventory] = useState([{"id": "storage", "name": "123", image: "123"}]);
+    const [inventory, setInventory] = useState([]);
     const [objects, setObjects] = useState([]);
 
     const [image, setImage] = useState("");
@@ -50,14 +50,25 @@ const Chat = () => {
 
                 console.log(incoming_data);
 
-                setInventory(incoming_data["inventory"] ?? []);
-                setObjects(incoming_data["surroundings"] ?? [])
+                if (incoming_data["inventory"]) {
+                    setInventory(incoming_data["inventory"]);
+                }
+
+                if (incoming_data["surroundings"]) {
+                    setObjects(incoming_data["surroundings"] ?? [])
+                }
+
                 setSelectedInventoryObject(null);
                 setSelectedObject(null);
 
-                setImage(incoming_data["image"] ?? "");
-                setMessage(incoming_data["message"] ?? "");
+                if (incoming_data["image"]) {
+                    setImage(incoming_data["image"]);
+                }
+                if (incoming_data["message"]) {
+                    setMessage(incoming_data["message"]);
+                }
                 setErrors(incoming_data["error"] ?? "");
+
 
                 if (incoming_data["message"] && incoming_data["message"].length > 0) {
                     console.log(messageHistory);
@@ -84,6 +95,7 @@ const Chat = () => {
             let target_2 = selectedInventoryObject
             if (action === "send") {
                 target_2 = sms
+                setSms("");
             }
             socket.send(JSON.stringify({
                 "player": playerName,
@@ -156,9 +168,9 @@ const Chat = () => {
 
                     </div>
 
-                    <div className="flex justify-center my-5">
-                        <div className="text-white">{message}</div>
-                        <div className="text-red-700">{errors}</div>
+                    <div className="flex justify-center flex-col my-5">
+                        <div className="text-white p-1 text-center">{message}</div>
+                        <div className="text-red-700 p-1 text-center">{errors}</div>
                     </div>
 
                     <div className="flex justify-center flex-wrap">
@@ -172,7 +184,8 @@ const Chat = () => {
                                        defaultChecked/>
                                 <div
                                     className="peer-checked:bg-blue-600 peer-checked:text-white bg-gray-200 text-gray-700 px-5 py-2.5 rounded-l-lg">
-                                    Осмотреть
+                                    {selectedObject ? "Осмотреть" : "Осмотреться"}
+
                                 </div>
                             </label>
 
@@ -181,7 +194,7 @@ const Chat = () => {
                                        name="radio-group" value="enter" className="peer hidden"/>
                                 <div
                                     className="peer-checked:bg-blue-600 peer-checked:text-white bg-gray-200 text-gray-700 px-5 py-2.5">
-                                    Войти
+                                    {selectedObject ? "Войти" : "Выйти"}
                                 </div>
                             </label>
 
